@@ -3,10 +3,15 @@ import XCTest
 
 final class DiffingTests: XCTestCase {
     func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(Diffing().text, "Hello, World!")
+        
+        let old = [1, 2, 3, 4, 5]
+        let new = [2, 1, 3, 4]
+        
+        let changes = old.changed(to: new, sortedChanges: false)
+        print(changes.debugDescription)
+        
+        let diffed = old.applying(changes: changes)
+        XCTAssertEqual(new, diffed)
     }
 
     static var allTests = [
