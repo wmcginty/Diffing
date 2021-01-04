@@ -13,6 +13,7 @@ Diffing is a small framework designed to make determining the differences, or ed
   s.source           = { :git => 'https://github.com/wmcginty/Diffing.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '10.0'
+  s.swift_version = '5.0'
   s.source_files = 'Sources/**/*'
   s.frameworks = 'Foundation'
 end
