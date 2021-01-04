@@ -9,97 +9,106 @@ import Foundation
 
 struct WagnerFischer: Diffing {
     
+    // MARK: - Subtype
+    final class Context<T: Diffable> {
+        
+        // MARK: - Properties
+        let old: [T]
+        let new: [T]
+        
+        private lazy var changesMatrix: WagnerFischer.Matrix = generatedChangesMatrix()
+
+        // MARK: - Initializer
+        init(old: [T], new: [T]) {
+            self.old = old
+            self.new = new
+        }
+    }
+    
+    // MARK: - Initializer
+    public init() { /* No op */ }
+    
     func changes<T>(from old: [T], to new: [T]) -> [Change<T>] where T : Diffable {
         //
     }
 }
 
-//public class Transformer<T: RangeReplaceableCollection> where T.Element: Equatable {
-//
-//    // MARK: Properties
-//
-//    /// The collection at which the transformation should begin.
-//    let source: T
-//
-//    /// The collection at which the transformation should edit toward.
-//    let destination: T
-//    private lazy var editMatrix: TransformMatrix = Transformer.editDistanceMatrix(from: self.source, to: self.destination)
-//
-//    // MARK: Initializers
-//
-//    /// Initialize a new Transformer object with a given source and destination.
-//    ///
-//    /// - Parameters:
-//    ///   - source: The source of the transformation.
-//    ///   - destination: The desired destination for the transformation.
-//    public init(source: T, destination: T) {
-//        self.source = source
-//        self.destination = destination
-//    }
-//
-//    // MARK: Computed Variables
-//
-//    /// The minimum number of changes needed to convert the source into the destination. Computed using the Levenshtein Distance algorithm.
-//    public var minEditDistance: Int { return editSteps.count }
-//
-//    /// The steps involved in transforming the source to the destination. Lazily calculated.
-//    public lazy var editSteps: [AnyEditor<T>] = Transformer.edits(from: self.source, to: self.destination, with: self.editMatrix)
-//}
-//
-////// MARK: Interface
-//private extension Transformer {
-//
-//    static func editDistanceMatrix(from source: T, to destination: T) -> TransformMatrix {
-//        var editDistances = TransformMatrix(rows: source.count + 1, columns: destination.count + 1)
-//
-//        for row in 1...source.count {
-//            for column in 1...destination.count {
-//
-//                let coordinate = Coordinate(row: row, column: column)
-//                let update = editCount(for: coordinate, in: editDistances, whenComponentsEqual: source[atOffset: row - 1] == destination[atOffset: column - 1])
-//                editDistances.set(value: update, at: coordinate)
-//            }
-//        }
-//
-//        return editDistances
-//    }
-//
-//    static func edits(from source: T, to destination: T, with matrix: TransformMatrix) -> [AnyEditor<T>] {
-//        var edits: [AnyEditor<T>] = []
-//        var rangeAlteringEdits: [AnyRangeAlteringEditor<T>] = []
-//        var coordinate = matrix.end
-//
-//        while matrix.value(for: coordinate) > 0 {
-//            if coordinate.row > 0 && coordinate.column > 0 && source[atOffset: coordinate.row - 1] == destination[atOffset: coordinate.column - 1] {
-//                //The two elements are the same, no edit required. Move diagonally up the matrix and repeat.
-//                coordinate = coordinate.inPreviousRow.inPreviousColumn
-//
-//            } else {
-//
-//                switch minimumEditCount(neighboring: coordinate, in: matrix) {
-//                case matrix[coordinate.inPreviousRow] where coordinate.row > 0:
-//                    //It would be optimal to move UP the matrix (meaning a deletion)
-//                    coordinate = coordinate.inPreviousRow
-//                    rangeAlteringEdits.append(deletionEdit(from: source, for: coordinate))
-//
-//                case matrix[coordinate.inPreviousColumn] where coordinate.column > 0:
-//                    //It would be optimal to move LEFT in the matrix (meaning an insertion)
-//                    coordinate = coordinate.inPreviousColumn
-//                    rangeAlteringEdits.append(insertionEdit(into: destination, for: coordinate))
-//
-//                case _ where coordinate.row > 0 && coordinate.column > 0:
-//                    //It would be optimal to move DIAGONALLY UP the matrix (meaning a substitution)
-//                    coordinate = coordinate.inPreviousRow.inPreviousColumn
-//                    edits.append(substitutionEdit(from: source, into: destination, for: coordinate))
-//
-//                default: continue
-//                }
-//            }
-//        }
-//
-//        return edits + condensedRangeAlteringEdits(from: rangeAlteringEdits)
-//    }
-//}
+// MARK: - Helper - Matrix Creation
+private extension WagnerFischer.Context {
+    
+    func generatedChangesMatrix() -> WagnerFischer.Matrix {
+        var editDistances = WagnerFischer.Matrix(rows: old.count + 1, columns: new.count + 1)
+        
+        for row in 1...old.count {
+            for column in 1...new.count {
+                
+                let coordinate = WagnerFischer.Matrix.Coordinate(row: row, column: column)
+                let update = changeCount(for: coordinate, in: editDistances,
+                                         whenComponentsEqual: old[row - 1] == new[column - 1])
+                editDistances.set(value: update, at: coordinate)
+            }
+        }
+        
+        return editDistances
+    }
+    
+    func changeCount(for coordinate: WagnerFischer.Matrix.Coordinate,
+                     in matrix: WagnerFischer.Matrix, whenComponentsEqual equal: Bool) -> Int {
+        return equal
+            ? matrix[coordinate.previousRow.previousColumn]
+            : minimumChangeCount(neighboring: coordinate, in: matrix) + 1
+    }
+    
+    func minimumChangeCount(neighboring coordinate: WagnerFischer.Matrix.Coordinate,
+                                 in matrix: WagnerFischer.Matrix) -> Int {
+        switch (coordinate.row, coordinate.column) {
+        case let (row, col) where row > 0 && col > 0:
+            return min(matrix[coordinate.previousRow], matrix[coordinate.previousColumn], matrix[coordinate.previousRow.previousColumn])
+        case let (row, _) where row > 0: return matrix[coordinate.previousRow]
+        case let (_, col) where col > 0: return matrix[coordinate.previousColumn]
+        default: return 0
+        }
+    }
+}
+
+//// MARK: Interface
+private extension WagnerFischer.Context {
+    
+    func generatedChanges() -> [Change<T>] {
+        var edits: [Change<T>] = []
+        var coordinate = changesMatrix.end
+
+        while changesMatrix.value(for: coordinate) > 0 {
+            if coordinate.row > 0 && coordinate.column > 0 && old[coordinate.row - 1] == new[coordinate.column - 1] {
+                //The two elements are the same, no edit required. Move diagonally up the matrix and repeat.
+                coordinate = coordinate.previousRow.previousColumn
+
+            } else {
+
+                switch minimumChangeCount(neighboring: coordinate, in: changesMatrix) {
+                case changesMatrix[coordinate.previousRow] where coordinate.row > 0:
+                    //It would be optimal to move UP the matrix (meaning a deletion)
+                    coordinate = coordinate.previousRow
+                    rangeAlteringEdits.append(deletionEdit(from: old, for: coordinate))
+
+                case changesMatrix[coordinate.inPreviousColumn] where coordinate.column > 0:
+                    //It would be optimal to move LEFT in the matrix (meaning an insertion)
+                    coordinate = coordinate.previousColumn
+                    rangeAlteringEdits.append(insertionEdit(into: new, for: coordinate))
+
+                case _ where coordinate.row > 0 && coordinate.column > 0:
+                    //It would be optimal to move DIAGONALLY UP the matrix (meaning a substitution)
+                    coordinate = coordinate.previousRow.inPreviousColumn
+                    edits.append(substitutionEdit(from: old, into: new, for: coordinate))
+
+                default: continue
+                }
+            }
+        }
+
+        return edits + condensedRangeAlteringEdits(from: rangeAlteringEdits)
+    }
+}
 //
 //// MARK: Editor Creation
 //private extension Transformer {
@@ -139,23 +148,6 @@ struct WagnerFischer: Diffing {
 //    }
 //}
 //
-// MARK: Helper
-//private extension Transformer {
-//    
-//    static func editCount(for coordinate: Coordinate, in matrix: TransformMatrix, whenComponentsEqual equal: Bool) -> Int {
-//        return equal ? matrix[coordinate.inPreviousRow.inPreviousColumn] : minimumEditCount(neighboring: coordinate, in: matrix) + 1
-//    }
-//    
-//    static func minimumEditCount(neighboring coordinate: Coordinate, in matrix: TransformMatrix) -> Int {
-//        switch (coordinate.row, coordinate.column) {
-//        case let (row, col) where row > 0 && col > 0:
-//            return min(matrix[coordinate.inPreviousRow], matrix[coordinate.inPreviousColumn], matrix[coordinate.inPreviousRow.inPreviousColumn])
-//        case let (row, _) where row > 0: return matrix[coordinate.inPreviousRow]
-//        case let (_, col) where col > 0: return matrix[coordinate.inPreviousColumn]
-//        default: return 0
-//        }
-//    }
-//}
 //
 //// MARK: Movement Processing
 //private extension Transformer {
