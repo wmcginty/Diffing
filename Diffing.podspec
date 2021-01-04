@@ -8,7 +8,7 @@ Diffing is a small framework designed to make determining the differences, or ed
                        DESC
 
   s.homepage         = 'https://github.com/wmcginty/Diffing'
-  s.license          = { :type => 'MIT', :file => 'LICENSE' }
+  s.license          = { :type => 'MIT', :file => 'LICENSE.md' }
   s.author           = { 'William McGinty' => 'mcgintw@gmail.com' }
   s.source           = { :git => 'https://github.com/wmcginty/Diffing.git', :tag => s.version.to_s }
 
