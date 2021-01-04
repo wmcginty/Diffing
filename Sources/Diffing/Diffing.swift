@@ -1,177 +1,101 @@
 //
 //  Diffing.swift
+//  
 //
+//  Created by William McGinty on 1/3/21.
 //
-//  Created by William McGinty on 12/31/20.
-//
 
-public struct Diffing {
-    
-    final class Context<T: Diffable> {
-        
-        // MARK: - Properties
-        let old: [T]
-        let new: [T]
-        
-        private(set) lazy var analysis: Analysis = Analysis(old: old, new: new)
-        
-        // MARK: - Initializer
-        init(old: [T], new: [T]) {
-            self.old = old
-            self.new = new
-        }
-    }
-}
+import Foundation
 
-// MARK: - Diffing Analysis
-extension Diffing.Context {
-    
-    struct Analysis {
-        
-        // MARK: - Properties
-        private(set) var referenceTable: [T.ID: Diffing.Reference.Entry]
-        private(set) var originalReferences: [Diffing.Reference]
-        private(set) var newReferences: [Diffing.Reference]
-        
-        // MARK: - Initializer
-        fileprivate init(old: [T], new: [T]) {
-            referenceTable = [:]
-            originalReferences = []
-            newReferences = []
-            
-            analyzeDiff(from: old, to: new)
-        }
-        
-        // MARK: - Interface
-        private mutating func analyzeDiff(from old: [T], to new: [T]) {
-            
-            // Pass 1
-            for element in new {
-                let diffID = element.diffID
-                
-                let entry = referenceTable[diffID] ?? Diffing.Reference.Entry()
-                entry.newCounter += 1
-                
-                referenceTable[diffID] = entry
-                newReferences.append(.entry(entry))
-            }
-
-            // Pass 2
-            for (index, element) in old.indexed() {
-                let diffID = element.diffID
-                
-                let entry = referenceTable[diffID] ?? Diffing.Reference.Entry()
-                entry.oldCounter += 1
-                entry.oldIndex = index
-                
-                referenceTable[diffID] = entry
-                originalReferences.append(.entry(entry))
-            }
-
-            // Pass 3
-            for (index, reference) in newReferences.indexed() {
-                if let entry = reference.entry, entry.uniquelyAppearsInBoth {
-                    newReferences[index] = .index(entry.oldIndex)
-                    originalReferences[entry.oldIndex] = .index(index)
-                }
-            }
-
-            // Pass 4
-            var i = 0
-            while(i < newReferences.count - 1) {
-                if let j = newReferences[i].index, j + 1 < originalReferences.count, newReferences[i + 1].entry != nil,
-                   newReferences[i + 1].entry === originalReferences[j + 1].entry {
-                    newReferences[i + 1] = .index(j + 1)
-                    originalReferences[j + 1] = .index(i + 1)
-                }
-                
-                i += 1
-            }
-
-            // Pass 5
-            i = newReferences.count - 1
-            while(i > 0) {
-                if let j = newReferences[i].index, j - 1 >= 0, newReferences[i - 1].entry != nil,
-                   newReferences[i - 1].entry === originalReferences[j - 1].entry {
-                    newReferences[i - 1] = .index(j - 1)
-                    originalReferences[j - 1] = .index(i - 1)
-                }
-                
-                i -= 1
-            }
-        }
-    }
+public protocol Diffing {
+    func changes<T: Diffable>(from old: [T], to new: [T]) -> [Change<T>]
+    func sortedChanges<T: Diffable>(from old: [T], to new: [T]) -> Difference<T>
 }
 
 public extension Diffing {
     
-    static func changes<T: Diffable>(from old: [T], to new: [T]) -> [Change<T>] {
-        let context = Diffing.Context<T>(old: old, new: new)
+    func sortedChanges<T: Diffable>(from old: [T], to new: [T]) -> Difference<T> {
+        return Difference<T>(changes(from: old, to: new), old: old, new: new)
+    }
+}
 
-        var changes: [Change<T>] = []
-        var runningOffset = 0
-        var deleteOffsets = Array(repeating: 0, count: old.count)
+public enum Change<T: Diffable>: Equatable {
+    case insert(value: T, index: Int)
+    case delete(value: T, index: Int)
+    case move(value: T, sourceIndex: Int, destinationIndex: Int)
+    case update(value: T, index: Int)
+    
+    // MARK: - CustomDebugStringConvertible
+    var debugDescription: String {
+        switch self {
+        case let .insert(value, index): return "Insert \(value) at index \(index)"
+        case let .delete(value, index): return "Delete \(value) at index \(index)"
+        case let .move(value, from, to): return "Move \(value) from index \(from) to index \(to)"
+        case let .update(value, index): return "Update \(value) at index \(index)"
+        }
+    }
+}
+
+public struct Difference<T: Diffable> {
+
+    public typealias Element = Change<T>
+    public typealias Index = Int
+    
+    // MARK: - Properties
+    public let unsortedChanges: [Change<T>]
+    public let sortedChanges: [Change<T>]
         
-        // Determine deletions, incrementing offset to compensate for each delete
-        for (j, reference) in context.analysis.originalReferences.indexed() {
-            deleteOffsets[j] = runningOffset
-            
-            if reference.entry != nil {
-                changes.append(.delete(value: context.old[j], index: j))
-                runningOffset -= 1
-            }
-        }
-
-        runningOffset = 0
-
-        // Determine inserts, moves and updates
-        for (i, reference) in context.analysis.newReferences.indexed() {
-            
-            if let j = reference.index {
-                // Determine if the element has changed
-                if context.new[i] != context.old[j] {
-                    changes.append(.update(value: context.new[i], index: j))
-                }
-
-                // Determine if the move is needed
-                let expectedOldIndex = j + runningOffset + deleteOffsets[j]
-                if expectedOldIndex != i {
-                    changes.append(.move(value: context.new[i], fromIndex: j, toIndex: i))
-                    
-                    if expectedOldIndex > i {
-                        runningOffset += 1
-                    }
-                }
-
-            } else {
-                changes.append(.insert(value: context.new[i], index: i))
-                runningOffset += 1
-            }
-        }
-
-        return changes
+    // MARK: - Initializers
+    public init(old: [T], new: [T], algorithm: Diffing) {
+        self.init(algorithm.changes(from: old, to: new), old: old, new: new)
     }
     
-    static func sortedChanges<T: Diffable>(from old: [T], to new: [T]) -> [Change<T>] {
-        let unsortedChanges = changes(from: old, to: new)
+    init(_ changes: [Change<T>], old: [T], new: [T]) {
+        self.unsortedChanges = changes
+        self.sortedChanges = Self.sortedChanges(from: changes, old: old, new: new)
+    }
+}
+
+// MARK: - Interface
+public extension Difference {
+    
+    func applied(to collection: [T]) -> [T] {
+        return sortedChanges.reduce(into: collection) { result, change in
+            switch change {
+            case let .insert(value, index): result.insert(value, at: index)
+            case let .delete(_, index): result.remove(at: index)
+            case let .update(value, index): result[index] = value
+            case let .move(value, fromIndex, toIndex):
+                result.remove(at: fromIndex)
+                result.insert(value, at: toIndex)
+            }
+        }
+    }
+}
+
+// MARK: - Helper
+private extension Difference {
         
+    static func sortedChanges(from unsorted: [Change<T>], old: [T], new: [T]) -> [Change<T>] {
         var insertions: [Change<T>] = []
         var updates: [Change<T>] = []
         var indexedDeletions: [[Change<T>]] = Array(repeating: [], count: old.count)
         
-        for change in unsortedChanges {
+        for change in unsorted {
             switch change {
             case .insert: insertions.append(change)
             case .update: updates.append(change)
             case let .delete(_, from): indexedDeletions[from].append(change)
             case let .move(value, from, to):
-                // Convert the move to an insert + delete pair
                 insertions.append(.insert(value: value, index: to))
                 indexedDeletions[from].append(.delete(value: value, index: from))
             }
         }
         
         // Return updates + sorted deletions + insertions
-        return updates + indexedDeletions.compactMap { $0.first }.reversed() + insertions
+        return  updates + indexedDeletions.compactMap { $0.first }.reversed() + insertions
     }
 }
+
+// MARK: - Equatable
+extension Difference: Equatable where T: Equatable { }
