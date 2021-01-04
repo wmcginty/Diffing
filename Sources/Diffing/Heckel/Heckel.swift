@@ -7,9 +7,7 @@
 
 public struct Heckel {
     
-    // MARK: - Initializer
-    public init() { /* No op */ }
-    
+    // MARK: - Subtype
     final class Context<T: Diffable> {
         
         // MARK: - Properties
@@ -24,6 +22,9 @@ public struct Heckel {
             self.new = new
         }
     }
+    
+    // MARK: - Initializer
+    public init() { /* No op */ }
 }
 
 // MARK: - Heckel.Context.Analysis
@@ -47,7 +48,6 @@ extension Heckel.Context {
         
         // MARK: - Interface
         private mutating func analyzeDiff(from old: [T], to new: [T]) {
-            
             // Pass 1
             
             /* Each element of the `new` collection is read in sequence. An entry is created for the element is created if it does not already exist. The count of this element (by `diffID`) is incremented for each incidence. The `referenceTable` is updated with entry, and the entry is inserted into `newReference`. */
@@ -127,8 +127,8 @@ extension Heckel.Context {
 
 // MARK: - Diffing
 extension Heckel: Diffing {
-    
-    public func changes<T: Diffable>(from old: [T], to new: [T]) -> [Change<T>] {
+
+    public func changes<T>(from old: [T], to new: [T]) -> [Change<T>] where T : Diffable {
         let context = Heckel.Context<T>(old: old, new: new)
 
         var changes: [Change<T>] = []
