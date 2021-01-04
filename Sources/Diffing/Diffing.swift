@@ -9,12 +9,12 @@ import Foundation
 
 public protocol Diffing {
     func changes<T: Diffable>(from old: [T], to new: [T]) -> [Change<T>]
-    func sortedChanges<T: Diffable>(from old: [T], to new: [T]) -> Difference<T>
+    func difference<T: Diffable>(from old: [T], to new: [T]) -> Difference<T>
 }
 
 public extension Diffing {
     
-    func sortedChanges<T: Diffable>(from old: [T], to new: [T]) -> Difference<T> {
+    func difference<T: Diffable>(from old: [T], to new: [T]) -> Difference<T> {
         return Difference<T>(changes(from: old, to: new), old: old, new: new)
     }
 }

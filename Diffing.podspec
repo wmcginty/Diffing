@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'Diffing'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'A small framework designed to determine the differences between two collections.'
 
   s.description      = <<-DESC
