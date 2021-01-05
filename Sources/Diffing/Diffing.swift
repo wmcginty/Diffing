@@ -25,8 +25,37 @@ public enum Change<T: Diffable>: Equatable {
     case move(value: T, sourceIndex: Int, destinationIndex: Int)
     case update(value: T, index: Int)
     
+    // MARK: - Interface
+    public var isInsertion: Bool {
+        switch self {
+        case .insert: return true
+        default: return false
+        }
+    }
+    
+    public var isDeletion: Bool {
+        switch self {
+        case .delete: return true
+        default: return false
+        }
+    }
+    
+    public var isMove: Bool {
+        switch self {
+        case .move: return true
+        default: return false
+        }
+    }
+    
+    public var isUpdate: Bool {
+        switch self {
+        case .update: return true
+        default: return false
+        }
+    }
+    
     // MARK: - CustomDebugStringConvertible
-    var debugDescription: String {
+    public var debugDescription: String {
         switch self {
         case let .insert(value, index): return "Insert \(value) at index \(index)"
         case let .delete(value, index): return "Delete \(value) at index \(index)"
