@@ -23,7 +23,7 @@ public enum Change<T: Diffable>: Equatable {
     case insert(value: T, index: Int)
     case delete(value: T, index: Int)
     case move(value: T, sourceIndex: Int, destinationIndex: Int)
-    case update(value: T, index: Int)
+    case update(old: T, new: T, index: Int)
     
     // MARK: - Interface
     public var isInsertion: Bool {
@@ -60,7 +60,7 @@ public enum Change<T: Diffable>: Equatable {
         case let .insert(value, index): return "Insert \(value) at index \(index)"
         case let .delete(value, index): return "Delete \(value) at index \(index)"
         case let .move(value, from, to): return "Move \(value) from index \(from) to index \(to)"
-        case let .update(value, index): return "Update \(value) at index \(index)"
+        case let .update(old, new, index): return "Update \(old) to \(new) at index \(index)"
         }
     }
 }
@@ -93,7 +93,7 @@ public extension Difference {
             switch change {
             case let .insert(value, index): result.insert(value, at: index)
             case let .delete(_, index): result.remove(at: index)
-            case let .update(value, index): result[index] = value
+            case let .update(_, new, index): result[index] = new
             case let .move(value, fromIndex, toIndex):
                 result.remove(at: fromIndex)
                 result.insert(value, at: toIndex)
