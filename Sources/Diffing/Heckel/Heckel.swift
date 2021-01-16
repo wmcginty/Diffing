@@ -160,7 +160,7 @@ extension Heckel: Diffing {
                 
             case .indexInOther(let otherIndex):
                 if context.old[otherIndex] != context.new[index] {
-                    changes.append(.update(old: context.old[index], new: context.new[index], index: index))
+                    changes.append(.update(old: context.old[otherIndex], new: context.new[index], index: index))
                 }
                 
                 let deleteOffset = deleteOffsets[otherIndex]
