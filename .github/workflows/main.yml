@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, release/*]
+  pull_request:
+
+jobs:
+  Build:
+    runs-on: macos-11
+    strategy:
+      fail-fast: false
+      matrix:
+        name: ["iOS", "tvOS", "macOS"]
+        include:
+            - name: "iOS"
+              scheme: "Diffing"
+              destination: "platform=iOS Simulator,OS=15.2,name=iPhone 12 Pro"
+              test: true
+
+            - name: "tvOS"
+              scheme: "Diffing"
+              destination: "platform=tvOS Simulator,OS=15.2,name=Apple TV"
+              test: true
+
+            - name: "macOS"
+              scheme: "Diffing"
+              destination: "arch=x86_64"
+              test: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Build and Test
+      run: >
+        if [[ ${{ matrix.test }} == true ]]; then
+          xcodebuild test \
+            -scheme "${{ matrix.scheme }}" \
+            -destination "${{ matrix.destination }}" \
+            ONLY_ACTIVE_ARCH=NO -enableCodeCoverage YES || exit 1
+        else
+          xcodebuild \
+            -scheme "${{ matrix.scheme }}" \
+            -destination "${{ matrix.destination }}" \
+            ONLY_ACTIVE_ARCH=NO || exit 1
+        fi
+  Lint:
+    runs-on: macos-11
+    env:
+      cocoapods: true
+      spm: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Lint
+      run: >
+        if [[ ${{ env.spm }} == true ]]; then
+          swift package describe
+        fi
+
+        if [[ ${{ env.cocoapods }} == true ]]; then
+          pod lib lint
+        fi
