@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Collection + Indexed
 extension Collection {
     
-    func indexed() -> Zip2Sequence<Self.Indices, Self> {
+    func indexed() -> Zip2Sequence<Indices, Self> {
         return zip(indices, self)
     }
 }
