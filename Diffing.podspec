@@ -18,5 +18,5 @@ Diffing is a small framework designed to make determining the differences, or ed
   
   s.swift_version = '5.5'
   s.source_files = 'Sources/**/*'
-  s.frameworks = 'Foundation'
+  s.framework = 'Foundation'
 end
