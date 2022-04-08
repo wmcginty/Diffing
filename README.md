@@ -38,18 +38,28 @@ Requires iOS 10.0, tvOS 10.0, macOS 10.12
 
 ## Installation
 
-Add this to your project using Swift Package Manager. In Xcode, that is simply: File > Swift Packages > Add Package Dependency... and you're done. Alternative installations options are shown below for legacy projects.
+### Cocoapods
 
-### CocoaPods
+Diffing is available through [CocoaPods](http://cocoapods.org). To install it, simply add the following line to your Podfile:
 
-If you are already using [CocoaPods](http://cocoapods.org), just add 'Diffing' to your `Podfile`, then run `pod install`.
+```ruby
+pod 'Diffing'
+```
 
 ### Carthage
 
-If you are already using [Carthage](https://github.com/Carthage/Carthage), just add to your `Cartfile`:
+Add the following to your [Cartfile](https://github.com/Carthage/Carthage/blob/master/Documentation/Artifacts.md#cartfile):
 
-```ogdl
-github "wmcginty/Diffing" ~> 1.0.0
+```
+github "wmcginty/Diffing"
 ```
 
-Then run `carthage bootstrap` to build the framework and drag the built `Diffing.framework` into your Xcode project.
+Run `carthage update` and follow the steps as described in Carthage's [README](https://github.com/Carthage/Carthage#adding-frameworks-to-an-application).
+
+### Swift Package Manager
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/wmcginty/Diffing.git", from: "0.4.0")
+]
+```
