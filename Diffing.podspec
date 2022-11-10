@@ -12,9 +12,9 @@ Diffing is a small framework designed to make determining the differences, or ed
   s.author           = { 'William McGinty' => 'mcgintw@gmail.com' }
   s.source           = { :git => 'https://github.com/wmcginty/Diffing.git', :tag => s.version.to_s }
 
-  s.ios.deployment_target = '10.0'
-  s.tvos.deployment_target = '10.0'
-  s.macos.deployment_target = '10.12'
+  s.ios.deployment_target = '11.0'
+  s.tvos.deployment_target = '11.0'
+  s.macos.deployment_target = '10.13'
   
   s.swift_version = '5.5'
   s.source_files = 'Sources/**/*'
