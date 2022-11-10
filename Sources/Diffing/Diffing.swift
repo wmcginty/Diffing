@@ -71,6 +71,8 @@ public struct Difference<T: Diffable> {
     public typealias Index = Int
     
     // MARK: - Properties
+    public let old: [T]
+    public let new: [T]
     public let unsortedChanges: [Change<T>]
     public let sortedChanges: [Change<T>]
         
@@ -82,6 +84,8 @@ public struct Difference<T: Diffable> {
     init(_ changes: [Change<T>], old: [T], new: [T]) {
         self.unsortedChanges = changes
         self.sortedChanges = Self.sortedChanges(from: changes, old: old, new: new)
+        self.old = old
+        self.new = new
     }
 }
 
